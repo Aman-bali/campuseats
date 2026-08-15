@@ -34,7 +34,7 @@ This repository contains:
 * GitHub
 * Browser Developer Tools
 
-##Author
+## Author
 Aman Bali
 
 ## Author
