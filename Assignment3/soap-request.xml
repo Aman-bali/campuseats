@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:sptypes="http://securepay.example.com/gateway/v1/types">
+  <soap:Header>
+    <sptypes:Credentials>
+      <sptypes:apiKey>sp_live_9f2b7a6c1e4d</sptypes:apiKey>
+      <sptypes:merchantId>CAMPUSEATS_MERCH_0142</sptypes:merchantId>
+    </sptypes:Credentials>
+  </soap:Header>
+  <soap:Body>
+    <sptypes:ChargeRequest>
+      <sptypes:merchantOrderRef>ORD-2026-08-004417</sptypes:merchantOrderRef>
+      <sptypes:amount>287.50</sptypes:amount>
+      <sptypes:currency>INR</sptypes:currency>
+      <sptypes:cardToken>tok_4242c9a1b7</sptypes:cardToken>
+      <sptypes:captureMode>AUTO</sptypes:captureMode>
+    </sptypes:ChargeRequest>
+  </soap:Body>
+</soap:Envelope>
