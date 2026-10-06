@@ -1,0 +1,114 @@
+############################################################
+# 1. Successful create — 201 + Location header
+############################################################
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/json
+Content-Length: 271
+Location: /menu-items/ITEM-b7f55842
+Connection: close
+
+{"category":"mains","createdAt":"2026-09-05T16:48:21+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-b7f55842","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-05T16:48:21+00:00"}
+
+############################################################
+# 2. Same Idempotency-Key repeated — returns the ORIGINAL item
+#    (note: different body below is ignored — no duplicate made)
+############################################################
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/json
+Content-Length: 271
+Location: /menu-items/ITEM-b7f55842
+Connection: close
+
+{"category":"mains","createdAt":"2026-09-05T16:48:21+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-b7f55842","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-05T16:48:21+00:00"}
+
+############################################################
+# 3. Malformed body — 400
+############################################################
+HTTP/1.1 400 BAD REQUEST
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/problem+json
+Content-Length: 150
+Connection: close
+
+{"detail":"`price` must be greater than zero.","status":400,"title":"Malformed request body","type":"https://campuseats.dev/errors/validation-error"}
+
+############################################################
+# 4. Missing resource — 404
+############################################################
+HTTP/1.1 404 NOT FOUND
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/problem+json
+Content-Length: 146
+Connection: close
+
+{"detail":"No menu item with id 'ITEM-doesnotexist'.","status":404,"title":"Resource not found","type":"https://campuseats.dev/errors/not-found"}
+
+############################################################
+# 5. State conflict — 409
+#    (item is available by default; deleting it before it is
+#     marked unavailable must be refused)
+############################################################
+(item under test: ITEM-b7f55842)
+HTTP/1.1 409 CONFLICT
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/problem+json
+Content-Length: 187
+Connection: close
+
+{"detail":"Item is still available - mark it unavailable before deleting it.","status":409,"title":"Request conflicts with current state","type":"https://campuseats.dev/errors/conflict"}
+
+############################################################
+# 6. Bonus: read the item, then correctly retire it
+############################################################
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/json
+Content-Length: 271
+Connection: close
+
+{"category":"mains","createdAt":"2026-09-05T16:48:21+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-b7f55842","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-05T16:48:21+00:00"}
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/json
+Content-Length: 272
+Connection: close
+
+{"category":"mains","createdAt":"2026-09-05T16:48:21+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":false,"itemId":"ITEM-b7f55842","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-05T16:48:21+00:00"}
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:21 GMT
+Content-Type: application/json
+Content-Length: 42
+Connection: close
+
+{"deleted":true,"itemId":"ITEM-b7f55842"}
+
+############################################################
+# 7. D3 fallback demo: kill Payments, then create a new item.
+#    Catalogue must still succeed, but degrade the item to
+#    isAvailable=false instead of failing the whole request.
+############################################################
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Sat, 05 Sep 2026 16:48:23 GMT
+Content-Type: application/json
+Content-Length: 229
+Location: /menu-items/ITEM-e8dbbaa9
+Connection: close
+
+{"category":"beverages","createdAt":"2026-09-05T16:48:22+00:00","description":"","isAvailable":false,"itemId":"ITEM-e8dbbaa9","name":"Filter Coffee","price":25.0,"restaurantId":"rest-002","updatedAt":"2026-09-05T16:48:23+00:00"}
+
+############################################################
+# done
+############################################################
