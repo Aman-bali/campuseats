@@ -1,0 +1,307 @@
+openapi: 3.0.3
+info:
+  title: CampusEats Orders Service
+  version: 1.0.0
+  description: >
+    REST rebuild of the Orders service. Replaces the SOAP-style operations
+    placeOrder, getOrder, listOrders and cancelOrder with resources.
+    Every failure uses the single Problem shape (application/problem+json).
+servers:
+  - url: http://localhost:5001
+    description: Local development
+
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Place an order (charges the Payments service)
+      description: >
+        Safely retryable. Send an Idempotency-Key header; a repeat with the
+        same key and same body returns the original order and charges nothing.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order created and paid (also returned on an idempotent repeat).
+          headers:
+            Location:
+              description: URL of the new order.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    get:
+      operationId: listOrders
+      summary: List orders, filtered by query string
+      parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+      responses:
+        '200':
+          description: Matching orders (possibly empty).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Read one order
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: The order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/{orderId}/cancellation:
+    post:
+      operationId: createCancellation
+      summary: Cancel an order (creates a cancellation sub-resource)
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancellationRequest'
+      responses:
+        '201':
+          description: Order cancelled.
+          headers:
+            Location:
+              description: URL of the cancellation record.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cancellation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      operationId: getCancellation
+      summary: Read the cancellation record of an order
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: The cancellation record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cancellation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: ORD-0001
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Client-chosen unique key (e.g. a UUID) making the create safely retryable.
+      schema:
+        type: string
+        maxLength: 128
+
+  responses:
+    BadRequest:
+      description: Malformed body or parameter (400).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource does not exist (404).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Request conflicts with the current state of the resource (409).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unprocessable:
+      description: >
+        Well-formed request that the domain refuses (422): payment declined
+        (was SOAP card_declined / PaymentFailed) or Idempotency-Key reused
+        with a different body.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: >
+        Payments dependency unreachable after retries (503, was
+        GatewayTimeout). No order is stored; safe to retry with the same key.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    OrderStatus:
+      type: string
+      enum: [paid, cancelled]
+    OrderItem:
+      type: object
+      required: [itemId, name, quantity, unitPrice]
+      properties:
+        itemId:
+          type: string
+          example: ITM-17
+        name:
+          type: string
+          example: Masala Dosa
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 20
+        unitPrice:
+          type: string
+          description: Decimal price snapshot taken from the Catalogue at order time.
+          example: '60.00'
+    OrderRequest:
+      type: object
+      required: [studentId, items, cardToken]
+      properties:
+        studentId:
+          type: string
+          example: S-20251651015
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        cardToken:
+          type: string
+          description: Tokenised card. Forwarded to Payments, never stored in a response.
+          example: tok_4242c9a1b7
+        currency:
+          type: string
+          default: INR
+    Order:
+      type: object
+      required: [id, studentId, items, total, currency, status, createdAt]
+      properties:
+        id:
+          type: string
+          example: ORD-0001
+        studentId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        total:
+          type: string
+          example: '120.00'
+        currency:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        createdAt:
+          type: string
+          format: date-time
+        links:
+          type: object
+          properties:
+            self:
+              type: string
+            cancellation:
+              type: string
+    OrderList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        count:
+          type: integer
+    CancellationRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Changed my mind
+    Cancellation:
+      type: object
+      required: [orderId, reason, cancelledAt]
+      properties:
+        orderId:
+          type: string
+        reason:
+          type: string
+        cancelledAt:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          example: https://campuseats.example.com/problems/payment-declined
+        title:
+          type: string
+          example: Payment declined
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: The issuing bank declined the payment.
