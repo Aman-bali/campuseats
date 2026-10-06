@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:sptypes="http://securepay.example.com/gateway/v1/types">
+  <soap:Body>
+    <sptypes:ChargeResponse>
+      <sptypes:transactionId>txn_8a3f01c9d2e6</sptypes:transactionId>
+      <sptypes:status>CAPTURED</sptypes:status>
+      <sptypes:authCode>AUTH-771029</sptypes:authCode>
+      <sptypes:processedAt>2026-08-24T14:32:07Z</sptypes:processedAt>
+    </sptypes:ChargeResponse>
+  </soap:Body>
+</soap:Envelope>
