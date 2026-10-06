@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:sptypes="http://securepay.example.com/gateway/v1/types">
+  <soap:Body>
+    <soap:Fault>
+      <faultcode>soap:Server</faultcode>
+      <faultstring>Charge could not be authorized</faultstring>
+      <detail>
+        <sptypes:ChargeFaultDetail>
+          <sptypes:faultCode>card_declined</sptypes:faultCode>
+          <sptypes:faultReason>Issuing bank declined the transaction (insufficient funds)</sptypes:faultReason>
+          <sptypes:partnerReference>ERR-REF-55021</sptypes:partnerReference>
+        </sptypes:ChargeFaultDetail>
+      </detail>
+    </soap:Fault>
+  </soap:Body>
+</soap:Envelope>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="SecurePayGateway"
+             targetNamespace="http://securepay.example.com/gateway/v1/wsdl"
+             xmlns:tns="http://securepay.example.com/gateway/v1/wsdl"
+             xmlns:sptypes="http://securepay.example.com/gateway/v1/types"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <!-- ================= TYPES ================= -->
+  <types>
+    <xsd:schema targetNamespace="http://securepay.example.com/gateway/v1/types"
+                xmlns:sptypes="http://securepay.example.com/gateway/v1/types"
+                elementFormDefault="qualified">
+
+      <!-- WS-Security-style credentials carried in the SOAP Header -->
+      <xsd:element name="Credentials">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="apiKey" type="xsd:string"/>
+            <xsd:element name="merchantId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Request body -->
+      <xsd:element name="ChargeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="merchantOrderRef" type="xsd:string"/>
+            <xsd:element name="amount" type="xsd:decimal"/>
+            <xsd:element name="currency" type="xsd:string"/>
+            <xsd:element name="cardToken" type="xsd:string"/>
+            <xsd:element name="captureMode" type="sptypes:CaptureMode"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:simpleType name="CaptureMode">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="AUTO"/>
+          <xsd:enumeration value="MANUAL"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Success response body -->
+      <xsd:element name="ChargeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="transactionId" type="xsd:string"/>
+            <xsd:element name="status" type="sptypes:ChargeStatus"/>
+            <xsd:element name="authCode" type="xsd:string"/>
+            <xsd:element name="processedAt" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:simpleType name="ChargeStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="AUTHORIZED"/>
+          <xsd:enumeration value="CAPTURED"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Fault detail body -->
+      <xsd:element name="ChargeFaultDetail">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="faultCode" type="xsd:string"/>
+            <xsd:element name="faultReason" type="xsd:string"/>
+            <xsd:element name="partnerReference" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- ================= MESSAGES ================= -->
+  <message name="ChargeHeaderMessage">
+    <part name="credentials" element="sptypes:Credentials"/>
+  </message>
+
+  <message name="ChargeRequestMessage">
+    <part name="body" element="sptypes:ChargeRequest"/>
+  </message>
+
+  <message name="ChargeResponseMessage">
+    <part name="body" element="sptypes:ChargeResponse"/>
+  </message>
+
+  <message name="ChargeFaultMessage">
+    <part name="fault" element="sptypes:ChargeFaultDetail"/>
+  </message>
+
+  <!-- ================= PORT TYPE ================= -->
+  <portType name="SecurePayGatewayPortType">
+    <operation name="charge">
+      <input message="tns:ChargeRequestMessage"/>
+      <output message="tns:ChargeResponseMessage"/>
+      <fault name="ChargeFault" message="tns:ChargeFaultMessage"/>
+    </operation>
+  </portType>
+
+  <!-- ================= BINDING (SOAP over HTTP) ================= -->
+  <binding name="SecurePayGatewayBinding" type="tns:SecurePayGatewayPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="charge">
+      <soap:operation soapAction="http://securepay.example.com/gateway/v1/charge" style="document"/>
+      <input>
+        <soap:header message="tns:ChargeHeaderMessage" part="credentials" use="literal"/>
+        <soap:body parts="body" use="literal"/>
+      </input>
+      <output>
+        <soap:body parts="body" use="literal"/>
+      </output>
+      <fault name="ChargeFault">
+        <soap:fault name="ChargeFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- ================= SERVICE / PORT ================= -->
+  <service name="SecurePayGatewayService">
+    <port name="SecurePayGatewayPort" binding="tns:SecurePayGatewayBinding">
+      <soap:address location="https://api.securepay-partner.com/soap/v1/gateway"/>
+    </port>
+  </service>
+
+</definitions>
