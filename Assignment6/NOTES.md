@@ -220,3 +220,4 @@ Rules implemented (`negotiation.choose_format`): no header or `*/*` or `applicat
 - **Order ids can skip numbers** (e.g. `ORD-0002` is missing in the transcript): the id is reserved before the Payments call and not reused if the charge fails — behaviour carried over from Assignment 4.
 - **A replay returns the order's current representation**, so if the order was cancelled in between, the replay shows `cancelled`. It still does no new work.
 - Everything runs against local stubs (`payments_stub.py`); `STUB_FAIL`, `STUB_SLEEP`, `STUB_GARBAGE` exist only to drive the 503 / timeout / 500 demos.
+End
