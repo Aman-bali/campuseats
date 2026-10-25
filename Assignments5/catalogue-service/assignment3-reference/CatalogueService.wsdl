@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Assignment 3 baseline (kept for comparison — Part A/D of Assignment 4
+  quotes and counts against this file). This is the SOAP contract the
+  Catalogue Service would have exposed under Assignment 3's paper design:
+  addMenuItem, getMenu, setAvailability, removeMenuItem, searchFoodItems.
+-->
+<definitions name="CatalogueService"
+             targetNamespace="http://campuseats.example.com/catalogue/v1/wsdl"
+             xmlns:tns="http://campuseats.example.com/catalogue/v1/wsdl"
+             xmlns:cat="http://campuseats.example.com/catalogue/v1/types"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <types>
+    <xsd:schema targetNamespace="http://campuseats.example.com/catalogue/v1/types"
+                xmlns:cat="http://campuseats.example.com/catalogue/v1/types"
+                elementFormDefault="qualified">
+
+      <xsd:element name="AddMenuItemRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="restaurantRef" type="xsd:string"/>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="description" type="xsd:string"/>
+            <xsd:element name="price" type="xsd:decimal"/>
+            <xsd:element name="category" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="AddMenuItemResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemRef" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetMenuRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="restaurantRef" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetMenuResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="item" type="cat:MenuItemType" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:complexType name="MenuItemType">
+        <xsd:sequence>
+          <xsd:element name="itemRef" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="price" type="xsd:decimal"/>
+          <xsd:element name="isAvailable" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="SetAvailabilityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemRef" type="xsd:string"/>
+            <xsd:element name="isAvailable" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SetAvailabilityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemRef" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="RemoveMenuItemRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemRef" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="RemoveMenuItemResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemRef" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchFoodItemsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="query" type="xsd:string"/>
+            <xsd:element name="category" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchFoodItemsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="item" type="cat:MenuItemType" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ManageMenuFaultDetail">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="faultCode" type="xsd:string"/>
+            <xsd:element name="faultReason" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <message name="AddMenuItemInput">
+    <part name="body" element="cat:AddMenuItemRequest"/>
+  </message>
+  <message name="AddMenuItemOutput">
+    <part name="body" element="cat:AddMenuItemResponse"/>
+  </message>
+
+  <message name="GetMenuInput">
+    <part name="body" element="cat:GetMenuRequest"/>
+  </message>
+  <message name="GetMenuOutput">
+    <part name="body" element="cat:GetMenuResponse"/>
+  </message>
+
+  <message name="SetAvailabilityInput">
+    <part name="body" element="cat:SetAvailabilityRequest"/>
+  </message>
+  <message name="SetAvailabilityOutput">
+    <part name="body" element="cat:SetAvailabilityResponse"/>
+  </message>
+
+  <message name="RemoveMenuItemInput">
+    <part name="body" element="cat:RemoveMenuItemRequest"/>
+  </message>
+  <message name="RemoveMenuItemOutput">
+    <part name="body" element="cat:RemoveMenuItemResponse"/>
+  </message>
+
+  <message name="SearchFoodItemsInput">
+    <part name="body" element="cat:SearchFoodItemsRequest"/>
+  </message>
+  <message name="SearchFoodItemsOutput">
+    <part name="body" element="cat:SearchFoodItemsResponse"/>
+  </message>
+
+  <message name="ManageMenuFaultMessage">
+    <part name="fault" element="cat:ManageMenuFaultDetail"/>
+  </message>
+
+  <portType name="CataloguePortType">
+    <operation name="addMenuItem">
+      <input message="tns:AddMenuItemInput"/>
+      <output message="tns:AddMenuItemOutput"/>
+      <fault name="ManageMenuFault" message="tns:ManageMenuFaultMessage"/>
+    </operation>
+    <operation name="getMenu">
+      <input message="tns:GetMenuInput"/>
+      <output message="tns:GetMenuOutput"/>
+    </operation>
+    <operation name="setAvailability">
+      <input message="tns:SetAvailabilityInput"/>
+      <output message="tns:SetAvailabilityOutput"/>
+      <fault name="ManageMenuFault" message="tns:ManageMenuFaultMessage"/>
+    </operation>
+    <operation name="removeMenuItem">
+      <input message="tns:RemoveMenuItemInput"/>
+      <output message="tns:RemoveMenuItemOutput"/>
+      <fault name="ManageMenuFault" message="tns:ManageMenuFaultMessage"/>
+    </operation>
+    <operation name="searchFoodItems">
+      <input message="tns:SearchFoodItemsInput"/>
+      <output message="tns:SearchFoodItemsOutput"/>
+    </operation>
+  </portType>
+
+  <binding name="CatalogueBinding" type="tns:CataloguePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="addMenuItem">
+      <soap:operation soapAction="http://campuseats.example.com/catalogue/v1/addMenuItem"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+      <fault name="ManageMenuFault"><soap:fault name="ManageMenuFault" use="literal"/></fault>
+    </operation>
+
+    <operation name="getMenu">
+      <soap:operation soapAction="http://campuseats.example.com/catalogue/v1/getMenu"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+
+    <operation name="setAvailability">
+      <soap:operation soapAction="http://campuseats.example.com/catalogue/v1/setAvailability"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+      <fault name="ManageMenuFault"><soap:fault name="ManageMenuFault" use="literal"/></fault>
+    </operation>
+
+    <operation name="removeMenuItem">
+      <soap:operation soapAction="http://campuseats.example.com/catalogue/v1/removeMenuItem"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+      <fault name="ManageMenuFault"><soap:fault name="ManageMenuFault" use="literal"/></fault>
+    </operation>
+
+    <operation name="searchFoodItems">
+      <soap:operation soapAction="http://campuseats.example.com/catalogue/v1/searchFoodItems"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+
+  <service name="CatalogueSoapService">
+    <port name="CataloguePort" binding="tns:CatalogueBinding">
+      <soap:address location="https://internal.campuseats.example.com/soap/catalogue/v1"/>
+    </port>
+  </service>
+
+</definitions>
