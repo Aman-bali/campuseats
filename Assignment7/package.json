@@ -1,0 +1,31 @@
+{
+  "name": "campuseats-assignment7-graphql",
+  "version": "1.0.0",
+  "description": "CampusEats Assignment 7 — GraphQL Menu/Dish Service backed by MySQL and Apollo Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node tests/test.js"
+  },
+  "keywords": [
+    "graphql",
+    "apollo-server",
+    "mysql2",
+    "express",
+    "campuseats"
+  ],
+  "author": "Aman Bali & Bhupesh Karir",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/server": "^4.11.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "graphql": "^16.10.0",
+    "mysql2": "^3.12.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

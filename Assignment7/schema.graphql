@@ -1,0 +1,43 @@
+# ============================================================================
+# CampusEats Assignment 7: GraphQL Schema Definition
+# Entity: Dish (Menu Item)
+# ============================================================================
+
+"""
+Represents a dish (menu item) available on the CampusEats platform.
+"""
+type Dish {
+  id: ID!
+  name: String!
+  price: Float!
+  available: Boolean!
+}
+
+"""
+Input fields required to create a new dish.
+Name and price are mandatory (!), while availability is optional and defaults to true.
+"""
+input AddDishInput {
+  name: String!
+  price: Float!
+  available: Boolean
+}
+
+type Query {
+  """
+  Retrieve all dishes in the CampusEats menu.
+  """
+  dishes: [Dish!]!
+
+  """
+  Retrieve a single dish by its unique ID, or null if not found.
+  """
+  dish(id: ID!): Dish
+}
+
+type Mutation {
+  """
+  Add a new dish to the menu. Returns the newly created Dish.
+  """
+  addDish(input: AddDishInput!): Dish!
+}
