@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusEats — GraphQL Menu Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #ea580c;
+      --primary-hover: #c2410c;
+      --primary-soft: #ffedd5;
+      --teal: #0f766e;
+      --teal-soft: #ccfbf1;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --success-bg: #ecfdf5;
+      --success-text: #065f46;
+      --success-border: #a7f3d0;
+      --error-bg: #fef2f2;
+      --error-text: #991b1b;
+      --error-border: #fecaca;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #ea580c, #c2410c);
+      color: white;
+      padding: 2.25rem 2rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .brand-tag {
+      display: inline-block;
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: #ffedd5;
+      font-size: 1rem;
+      max-width: 700px;
+    }
+
+    .header-meta {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.85);
+      flex-wrap: wrap;
+    }
+
+    .header-meta a {
+      color: white;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    /* Alert Banner */
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert.success {
+      display: flex;
+      background-color: var(--success-bg);
+      color: var(--success-text);
+      border-color: var(--success-border);
+    }
+
+    .alert.error {
+      display: flex;
+      background-color: var(--error-bg);
+      color: var(--error-text);
+      border-color: var(--error-border);
+    }
+
+    .alert.info {
+      display: flex;
+      background-color: #eff6ff;
+      color: #1e40af;
+      border-color: #bfdbfe;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 840px) {
+      .grid {
+        grid-template-columns: 360px 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.75rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-main);
+    }
+
+    .required-star {
+      color: var(--primary);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text-main);
+      background-color: #ffffff;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    button.btn-primary {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: background-color 0.15s ease, transform 0.05s ease;
+    }
+
+    button.btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+
+    button.btn-primary:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Recent Item Spotlight */
+    .recent-box {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--teal-soft);
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .recent-box.active {
+      display: block;
+      animation: fadeIn 0.25s ease-in;
+    }
+
+    .recent-header {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.05em;
+    }
+
+    .recent-content {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #134e4a;
+    }
+
+    /* Table & Menu List */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background-color: #f1f5f9;
+      padding: 0.85rem 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--border);
+    }
+
+    tbody td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge.available {
+      background-color: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
+    }
+
+    .badge.unavailable {
+      background-color: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
+    }
+
+    .badge-count {
+      background-color: var(--primary-soft);
+      color: var(--primary);
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .price-tag {
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+
+    .btn-refresh:hover {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 2px solid #ffffff;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="brand-tag">CampusEats &bull; Assignment 7</span>
+      <h1>CampusEats GraphQL Menu Service</h1>
+      <p>Single GraphQL service exposing the Menu/Dish entity powered by Apollo Server, Express, and MySQL (<code>mysql2/promise</code>).</p>
+      <div class="header-meta">
+        <span>API Endpoint: <a href="/graphql" target="_blank">/graphql</a></span>
+        <span>&bull;</span>
+        <span>Team: Aman Bali &amp; Bhupesh Karir</span>
+        <span>&bull;</span>
+        <span>Course: CS543 Web Services</span>
+      </div>
+    </header>
+
+    <!-- Global Feedback Alert Banner -->
+    <div id="statusAlert" class="alert" role="alert">
+      <span id="alertMessage"></span>
+      <button onclick="dismissAlert()" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; padding-left: 1rem;">&times;</button>
+    </div>
+
+    <div class="grid">
+      <!-- Left Column: Add Dish Form -->
+      <section class="card">
+        <h2 class="card-title">Add New Dish</h2>
+        <p class="card-subtitle">Executes GraphQL mutation <code>addDish(input: AddDishInput!)</code></p>
+
+        <form id="addDishForm" onsubmit="handleAddDish(event)">
+          <div class="form-group">
+            <label for="dishName">Dish Name <span class="required-star">*</span></label>
+            <input type="text" id="dishName" placeholder="e.g., Paneer Roll" required autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="dishPrice">Price (₹ INR) <span class="required-star">*</span></label>
+            <input type="number" id="dishPrice" placeholder="e.g., 90.00" step="0.5" min="0" required>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-group">
+              <input type="checkbox" id="dishAvailable" checked>
+              <span>Available for ordering</span>
+            </label>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn-primary">
+            <span id="btnText">Add Dish</span>
+          </button>
+        </form>
+
+        <!-- Spotlight for newly created dish -->
+        <div id="recentDishBox" class="recent-box">
+          <div class="recent-header">⚡ Just Added to Database</div>
+          <div id="recentDishDetails" class="recent-content"></div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Menu Table -->
+      <section class="card">
+        <div class="card-title">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span>Live Menu Items</span>
+            <span id="dishCountBadge" class="badge-count">0</span>
+          </div>
+          <button type="button" class="btn-refresh" onclick="fetchDishes()">
+            &#x21bb; Refresh
+          </button>
+        </div>
+        <p class="card-subtitle">Query: <code>query { dishes { id name price available } }</code></p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th>Dish Name</th>
+                <th style="width: 110px;">Price</th>
+                <th style="width: 120px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="dishesTableBody">
+              <tr>
+                <td colspan="4" class="empty-state">Loading dishes from GraphQL service...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // GraphQL Endpoint
+    const GRAPHQL_URL = '/graphql';
+
+    // UI Elements
+    const dishesTableBody = document.getElementById('dishesTableBody');
+    const dishCountBadge = document.getElementById('dishCountBadge');
+    const statusAlert = document.getElementById('statusAlert');
+    const alertMessage = document.getElementById('alertMessage');
+    const addDishForm = document.getElementById('addDishForm');
+    const dishNameInput = document.getElementById('dishName');
+    const dishPriceInput = document.getElementById('dishPrice');
+    const dishAvailableInput = document.getElementById('dishAvailable');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const recentDishBox = document.getElementById('recentDishBox');
+    const recentDishDetails = document.getElementById('recentDishDetails');
+
+    // Show alert banner
+    function showAlert(message, type = 'info') {
+      alertMessage.textContent = message;
+      statusAlert.className = `alert ${type}`;
+    }
+
+    // Dismiss alert banner
+    function dismissAlert() {
+      statusAlert.style.display = 'none';
+      statusAlert.className = 'alert';
+    }
+
+    /**
+     * Fetch all dishes from GraphQL endpoint using Query { dishes { id name price available } }
+     */
+    async function fetchDishes() {
+      const query = `
+        query GetDishes {
+          dishes {
+            id
+            name
+            price
+            available
+          }
+        }
+      `;
+
+      try {
+        const response = await fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        });
+
+        const result = await response.json();
+
+        if (result.errors && result.errors.length > 0) {
+          throw new Error(result.errors[0].message);
+        }
+
+        const dishes = result.data.dishes || [];
+        renderDishes(dishes);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        showAlert(`Failed to fetch dishes: ${err.message}`, 'error');
+        dishesTableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-state" style="color: var(--error-text);">
+              Error loading menu: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    /**
+     * Render dishes array in HTML table
+     */
+    function renderDishes(dishes) {
+      dishCountBadge.textContent = dishes.length;
+
+      if (dishes.length === 0) {
+        dishesTableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-state">No dishes available in the database. Add one above!</td>
+          </tr>
+        `;
+        return;
+      }
+
+      dishesTableBody.innerHTML = dishes
+        .map(
+          (dish) => `
+          <tr>
+            <td><strong>#${dish.id}</strong></td>
+            <td><strong>${escapeHtml(dish.name)}</strong></td>
+            <td class="price-tag">₹${dish.price.toFixed(2)}</td>
+            <td>
+              <span class="badge ${dish.available ? 'available' : 'unavailable'}">
+                ${dish.available ? 'Available' : 'Out of Stock'}
+              </span>
+            </td>
+          </tr>
+        `
+        )
+        .join('');
+    }
+
+    /**
+     * Handle Add Dish form submission
+     */
+    async function handleAddDish(event) {
+      event.preventDefault();
+      dismissAlert();
+
+      const name = dishNameInput.value.trim();
+      const priceRaw = dishPriceInput.value;
+      const available = dishAvailableInput.checked;
+
+      // Client-side validation
+      if (!name) {
+        showAlert('Please provide a valid dish name.', 'error');
+        dishNameInput.focus();
+        return;
+      }
+
+      const price = parseFloat(priceRaw);
+      if (isNaN(price) || price < 0) {
+        showAlert('Price must be a valid non-negative number.', 'error');
+        dishPriceInput.focus();
+        return;
+      }
+
+      // Mutation payload
+      const mutation = `
+        mutation CreateDish($input: AddDishInput!) {
+          addDish(input: $input) {
+            id
+            name
+            price
+            available
+          }
+        }
+      `;
+
+      const variables = {
+        input: {
+          name,
+          price,
+          available,
+        },
+      };
+
+      // Set loading state
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Adding...';
+
+      try {
+        const response = await fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: mutation,
+            variables,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.errors && result.errors.length > 0) {
+          throw new Error(result.errors[0].message);
+        }
+
+        const newDish = result.data.addDish;
+
+        // Show success alert
+        showAlert(`Successfully added "${newDish.name}" (ID #${newDish.id}) for ₹${newDish.price.toFixed(2)}!`, 'success');
+
+        // Update Spotlight Box
+        recentDishDetails.innerHTML = `
+          <strong>#${newDish.id} — ${escapeHtml(newDish.name)}</strong>
+          <span style="margin-left: 8px;">(₹${newDish.price.toFixed(2)})</span>
+          <span class="badge ${newDish.available ? 'available' : 'unavailable'}" style="margin-left: 8px;">
+            ${newDish.available ? 'Available' : 'Out of Stock'}
+          </span>
+        `;
+        recentDishBox.classList.add('active');
+
+        // Reset form inputs
+        dishNameInput.value = '';
+        dishPriceInput.value = '';
+        dishAvailableInput.checked = true;
+        dishNameInput.focus();
+
+        // Refresh live table from MySQL
+        await fetchDishes();
+      } catch (err) {
+        console.error('Mutation error:', err);
+        showAlert(`Error creating dish: ${err.message}`, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Add Dish';
+      }
+    }
+
+    // Helper: Escape HTML to avoid XSS
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initial load on page ready
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchDishes();
+    });
+  </script>
+</body>
+</html>
