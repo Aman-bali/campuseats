@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /mnt/user-data/outputs/orders_service
+collecting ... collected 8 items
+
+tests/test_orders.py::test_create_returns_201_and_location PASSED        [ 12%]
+tests/test_orders.py::test_idempotent_repeat_returns_original_without_recharging PASSED [ 25%]
+tests/test_orders.py::test_malformed_body_returns_400_problem PASSED     [ 37%]
+tests/test_orders.py::test_unknown_id_returns_404 PASSED                 [ 50%]
+tests/test_resilience.py::test_retries_transient_failures_with_same_key PASSED [ 62%]
+tests/test_resilience.py::test_4xx_is_never_retried PASSED               [ 75%]
+tests/test_resilience.py::test_dependency_down_gives_503_and_stores_nothing PASSED [ 87%]
+tests/test_resilience.py::test_cancel_twice_is_409_and_decline_is_422 PASSED [100%]
+
+============================== 8 passed in 0.22s ===============================

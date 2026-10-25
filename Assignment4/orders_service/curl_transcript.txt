@@ -1,0 +1,134 @@
+# 1. Successful create (201 + Location)
+$ curl -i -X POST $B/orders -H "Content-Type: application/json" -H "Idempotency-Key: demo-key-001" -d '{...order body...}'
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/json
+Content-Length: 327
+Location: /orders/ORD-0001
+Connection: close
+
+{"createdAt":"2026-10-06T05:36:33Z","currency":"INR","id":"ORD-0001","items":[{"itemId":"ITM-17","name":"Masala Dosa","quantity":2,"unitPrice":"60.00"},{"itemId":"ITM-04","name":"Filter Coffee","quantity":1,"unitPrice":"25.00"}],"links":{"self":"/orders/ORD-0001"},"status":"paid","studentId":"S-20251651015","total":"145.00"}
+
+
+# 2. Same request, same Idempotency-Key -> original returned, no second charge
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/json
+Content-Length: 327
+Location: /orders/ORD-0001
+Idempotent-Replay: true
+Connection: close
+
+{"createdAt":"2026-10-06T05:36:33Z","currency":"INR","id":"ORD-0001","items":[{"itemId":"ITM-17","name":"Masala Dosa","quantity":2,"unitPrice":"60.00"},{"itemId":"ITM-04","name":"Filter Coffee","quantity":1,"unitPrice":"25.00"}],"links":{"self":"/orders/ORD-0001"},"status":"paid","studentId":"S-20251651015","total":"145.00"}
+
+
+# 3. Malformed body -> 400
+HTTP/1.1 400 BAD REQUEST
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/problem+json
+Content-Length: 348
+Connection: close
+
+{"detail":"studentId must be a non-empty string; cardToken must be a string starting with 'tok_'; items[0].name must be a non-empty string; items[0].quantity must be an integer 1..20; items[0].unitPrice must be a positive decimal string","status":400,"title":"Invalid request body","type":"https://campuseats.example.com/problems/invalid-request"}
+
+
+# 4. Missing resource -> 404
+HTTP/1.1 404 NOT FOUND
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/problem+json
+Content-Length: 144
+Connection: close
+
+{"detail":"No order with id ORD-9999.","status":404,"title":"Order not found","type":"https://campuseats.example.com/problems/order-not-found"}
+
+
+# 5. Read one / filtered list
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/json
+Content-Length: 327
+Connection: close
+
+{"createdAt":"2026-10-06T05:36:33Z","currency":"INR","id":"ORD-0001","items":[{"itemId":"ITM-17","name":"Masala Dosa","quantity":2,"unitPrice":"60.00"},{"itemId":"ITM-04","name":"Filter Coffee","quantity":1,"unitPrice":"25.00"}],"links":{"self":"/orders/ORD-0001"},"status":"paid","studentId":"S-20251651015","total":"145.00"}
+
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/json
+Content-Length: 349
+Connection: close
+
+{"count":1,"items":[{"createdAt":"2026-10-06T05:36:33Z","currency":"INR","id":"ORD-0001","items":[{"itemId":"ITM-17","name":"Masala Dosa","quantity":2,"unitPrice":"60.00"},{"itemId":"ITM-04","name":"Filter Coffee","quantity":1,"unitPrice":"25.00"}],"links":{"self":"/orders/ORD-0001"},"status":"paid","studentId":"S-20251651015","total":"145.00"}]}
+
+
+# 6. Cancel (201 + Location), then cancel again -> 409 state conflict
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/json
+Content-Length: 87
+Location: /orders/ORD-0001/cancellation
+Connection: close
+
+{"cancelledAt":"2026-10-06T05:36:33Z","orderId":"ORD-0001","reason":"Changed my mind"}
+
+
+HTTP/1.1 409 CONFLICT
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/problem+json
+Content-Length: 170
+Connection: close
+
+{"detail":"Order ORD-0001 is already cancelled.","status":409,"title":"Order cannot be cancelled","type":"https://campuseats.example.com/problems/order-not-cancellable"}
+
+
+# 7. Payment declined (SOAP card_declined) -> 422
+HTTP/1.1 422 UNPROCESSABLE ENTITY
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/problem+json
+Content-Length: 178
+Connection: close
+
+{"detail":"Issuing bank declined the transaction (insufficient funds)","status":422,"title":"Payment declined","type":"https://campuseats.example.com/problems/payment-declined"}
+
+
+# 8. Same Idempotency-Key, different body -> 422
+HTTP/1.1 422 UNPROCESSABLE ENTITY
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:33 GMT
+Content-Type: application/problem+json
+Content-Length: 200
+Connection: close
+
+{"detail":"This Idempotency-Key was already used with a different request body.","status":422,"title":"Idempotency key reused","type":"https://campuseats.example.com/problems/idempotency-key-reused"}
+
+
+# 9. Payments service stopped -> retries with backoff+jitter, then 503 + Retry-After, nothing stored
+HTTP/1.1 503 SERVICE UNAVAILABLE
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:43 GMT
+Content-Type: application/problem+json
+Content-Length: 234
+Retry-After: 5
+Connection: close
+
+{"detail":"The order was not placed and you were not charged. Payments unreachable after 4 attempts (ConnectionError)","status":503,"title":"Payments unavailable","type":"https://campuseats.example.com/problems/payments-unavailable"}
+
+
+# 10. Nothing was stored for S-1
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 06 Oct 2026 05:36:43 GMT
+Content-Type: application/json
+Content-Length: 23
+Connection: close
+
+{"count":0,"items":[]}
