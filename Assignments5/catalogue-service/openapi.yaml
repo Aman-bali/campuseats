@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: CampusEats Catalogue Service
+  description: >
+    Owns Restaurants, Categories and FoodItems (per the Assignment 2
+    service boundary). This contract covers the menu-items resource:
+    listing an item for sale, browsing/searching the menu, and toggling
+    an item's availability.
+  version: "1.0.0"
+  contact:
+    name: Aman Bali (20251651015), Bhupesh Karir (20251651032)
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+
+paths:
+  /restaurants/{restaurantId}/menu-items:
+    post:
+      operationId: createMenuItem
+      summary: List a new menu item for a restaurant
+      parameters:
+        - $ref: '#/components/parameters/RestaurantId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemCreateRequest'
+      responses:
+        '201':
+          description: >
+            Item created (or, if the same Idempotency-Key was replayed,
+            the original item is returned unchanged).
+          headers:
+            Location:
+              description: URL of the newly created menu item
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /menu-items:
+    get:
+      operationId: listMenuItems
+      summary: Browse / search the menu with filters
+      parameters:
+        - name: restaurantId
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/Category'
+        - name: query
+          in: query
+          description: Free-text search over name and description
+          schema:
+            type: string
+        - name: available
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        '200':
+          description: Matching menu items (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MenuItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /menu-items/{itemId}:
+    get:
+      operationId: getMenuItem
+      summary: Fetch a single menu item
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: The menu item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteMenuItem
+      summary: Remove a menu item (must already be unavailable)
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /menu-items/{itemId}/availability:
+    patch:
+      operationId: setMenuItemAvailability
+      summary: Toggle whether a menu item can currently be ordered
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityUpdateRequest'
+      responses:
+        '200':
+          description: Updated menu item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+
+components:
+  parameters:
+    RestaurantId:
+      name: restaurantId
+      in: path
+      required: true
+      schema:
+        type: string
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: "ITEM-3f9a21c0"
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Optional client-generated key. A repeated create with the same
+        key for the same restaurant returns the original item instead
+        of creating a duplicate.
+      schema:
+        type: string
+
+  schemas:
+    Category:
+      type: string
+      enum: [starters, mains, desserts, beverages, snacks, uncategorised]
+
+    MenuItemCreateRequest:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0.01
+        category:
+          $ref: '#/components/schemas/Category'
+        isAvailable:
+          type: boolean
+          default: true
+
+    AvailabilityUpdateRequest:
+      type: object
+      required: [isAvailable]
+      properties:
+        isAvailable:
+          type: boolean
+
+    MenuItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          example: "ITEM-3f9a21c0"
+        restaurantId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        category:
+          $ref: '#/components/schemas/Category'
+        isAvailable:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DeleteResult:
+      type: object
+      properties:
+        itemId:
+          type: string
+        deleted:
+          type: boolean
+
+    Problem:
+      type: object
+      description: Single error shape used by every endpoint (RFC 7807-flavoured).
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Malformed request body or query string
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: No resource with that id
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Request conflicts with the resource's current state
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unprocessable:
+      description: Well-formed request the domain refuses
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

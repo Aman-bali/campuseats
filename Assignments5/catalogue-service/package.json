@@ -1,0 +1,16 @@
+{
+  "name": "campuseats-assignment5-catalogue-service-alt",
+  "version": "1.0.0",
+  "description": "CampusEats Assignment 5 - Catalogue Service (Node.js/Express)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node --test tests/test_*.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}

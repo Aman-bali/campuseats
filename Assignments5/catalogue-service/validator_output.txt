@@ -1,0 +1,2 @@
+openapi.yaml: OK
+openapi.yaml: OK - 0 errors, 0 warnings
