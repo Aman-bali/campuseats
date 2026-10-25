@@ -1,0 +1,17 @@
+{
+  "name": "campuseats-assignment6-orders-service",
+  "version": "1.0.0",
+  "description": "CampusEats Assignment 6 - Hardened Orders Service (Node.js/Express)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node --test tests/test_*.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "fast-xml-parser": "^4.5.7"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
