@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/claude/campuseats/catalogue-service
+collecting ... collected 4 items
+
+tests/test_catalogue.py::test_create_returns_201_with_location_header PASSED [ 25%]
+tests/test_catalogue.py::test_idempotent_repeat_returns_original PASSED  [ 50%]
+tests/test_catalogue.py::test_malformed_body_returns_400 PASSED          [ 75%]
+tests/test_catalogue.py::test_unknown_id_returns_404 PASSED              [100%]
+
+============================== 4 passed in 0.18s ===============================

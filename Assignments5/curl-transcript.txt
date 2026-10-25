@@ -1,0 +1,1079 @@
+
+############################################################
+# 1. Successful create -> 201 Created + Location + ETag
+# POST is neither safe nor idempotent; the Idempotency-Key makes the retry safe
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Authorization: Bearer demo-token -H Content-Type: application/json -H Idempotency-Key: demo-key-1 -d {"name":"Masala Dosa","description":"Crispy rice-and-lentil crepe with potato filling.","price":80,"category":"mains"}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Idempotency-Key: demo-key-1
+> Content-Length: 118
+> 
+} [118 bytes data]
+< HTTP/1.1 201 CREATED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 271
+< ETag: "17c78e471c4ead19"
+< Location: http://127.0.0.1:5000/menu-items/ITEM-2642a3c2
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 99
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [271 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+
+############################################################
+# 2. Same create repeated with the SAME Idempotency-Key -> the ORIGINAL result, no duplicate
+# Body differs on purpose; note Idempotent-Replayed: true and the same itemId/Location
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Authorization: Bearer demo-token -H Content-Type: application/json -H Idempotency-Key: demo-key-1 -d {"name":"SOMETHING ELSE","price":999}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Idempotency-Key: demo-key-1
+> Content-Length: 37
+> 
+} [37 bytes data]
+< HTTP/1.1 201 CREATED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 271
+< ETag: "17c78e471c4ead19"
+< Location: http://127.0.0.1:5000/menu-items/ITEM-2642a3c2
+< Idempotent-Replayed: true
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 98
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [271 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+
+############################################################
+# 2b. Proof there is exactly one item
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items?restaurantId=rest-001
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items?restaurantId=rest-001 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 273
+< Cache-Control: public, max-age=10
+< X-Total-Count: 1
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 99
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [273 bytes data]
+* Closing connection
+[{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}]
+
+
+############################################################
+# 3. Read one item -> 200 + ETag + Cache-Control
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items/ITEM-2642a3c2
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 271
+< ETag: "17c78e471c4ead19"
+< Cache-Control: public, max-age=30
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 98
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [271 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Crispy rice-and-lentil crepe with potato filling.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":80.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+
+############################################################
+# 4. Conditional GET with the current ETag -> 304 Not Modified, no body
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H If-None-Match: "17c78e471c4ead19"
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> If-None-Match: "17c78e471c4ead19"
+> 
+< HTTP/1.1 304 NOT MODIFIED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< ETag: "17c78e471c4ead19"
+< Cache-Control: public, max-age=30
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 97
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+* Closing connection
+
+
+############################################################
+# 5. Editor A: PUT with If-Match = current ETag -> 200, ETag changes
+############################################################
+$ curl -v -X PUT http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Authorization: Bearer demo-token -H Content-Type: application/json -H If-Match: "17c78e471c4ead19" -d {"name":"Masala Dosa","description":"Now with extra chutney.","price":90,"category":"mains"}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> PUT /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> If-Match: "17c78e471c4ead19"
+> Content-Length: 92
+> 
+} [92 bytes data]
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 245
+< ETag: "92d1c0cf8a21cdb3"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 97
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [245 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Now with extra chutney.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":90.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+
+############################################################
+# 6. Editor B: PUT with the STALE ETag -> 412 Precondition Failed (nothing overwritten)
+############################################################
+$ curl -v -X PUT http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Authorization: Bearer demo-token -H Content-Type: application/json -H If-Match: "17c78e471c4ead19" -d {"name":"Masala Dosa","price":50}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> PUT /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> If-Match: "17c78e471c4ead19"
+> Content-Length: 33
+> 
+} [33 bytes data]
+< HTTP/1.1 412 PRECONDITION FAILED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 226
+< ETag: "92d1c0cf8a21cdb3"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 96
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [226 bytes data]
+* Closing connection
+{"detail": "The resource changed since you read it (If-Match does not match the current ETag). Re-read it and retry.", "status": 412, "title": "Precondition Failed", "type": "https://campuseats.dev/errors/precondition-failed"}
+
+############################################################
+# 7. Old ETag no longer validates -> 200 with the new representation
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H If-None-Match: "17c78e471c4ead19"
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> If-None-Match: "17c78e471c4ead19"
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 245
+< ETag: "92d1c0cf8a21cdb3"
+< Cache-Control: public, max-age=30
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 96
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [245 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Now with extra chutney.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":90.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+
+############################################################
+# 8. Failure: 400 Bad Request (well-formed JSON, invalid value)
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Authorization: Bearer demo-token -H Content-Type: application/json -d {"name":"Free Tea","price":-5}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Content-Length: 30
+> 
+} [30 bytes data]
+< HTTP/1.1 400 BAD REQUEST
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 156
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 95
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [156 bytes data]
+* Closing connection
+{"detail": "`price` must be greater than zero.", "status": 400, "title": "Malformed request body", "type": "https://campuseats.dev/errors/validation-error"}
+
+############################################################
+# 9. Failure: 404 Not Found
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items/ITEM-doesnotexist
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items/ITEM-doesnotexist HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 404 NOT FOUND
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 152
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 95
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [152 bytes data]
+* Closing connection
+{"detail": "No menu item with id 'ITEM-doesnotexist'.", "status": 404, "title": "Resource not found", "type": "https://campuseats.dev/errors/not-found"}
+
+############################################################
+# 10. Failure: 401 Unauthorized (no token) and empty token
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Content-Type: application/json -d {"name":"Tea","price":10}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 25
+> 
+} [25 bytes data]
+< HTTP/1.1 401 UNAUTHORIZED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 182
+< WWW-Authenticate: Bearer realm="campuseats"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 94
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [182 bytes data]
+* Closing connection
+{"detail": "A non-empty `Authorization: Bearer <token>` header is required.", "status": 401, "title": "Authentication required", "type": "https://campuseats.dev/errors/unauthorized"}
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Content-Type: application/json -H Authorization: Bearer  -d {"name":"Tea","price":10}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Content-Type: application/json
+> Authorization: Bearer 
+> Content-Length: 25
+> 
+} [25 bytes data]
+< HTTP/1.1 401 UNAUTHORIZED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 182
+< WWW-Authenticate: Bearer realm="campuseats"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 93
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [182 bytes data]
+* Closing connection
+{"detail": "A non-empty `Authorization: Bearer <token>` header is required.", "status": 401, "title": "Authentication required", "type": "https://campuseats.dev/errors/unauthorized"}
+
+############################################################
+# 11. OPTIONS on one resource -> Allow header
+############################################################
+$ curl -v -X OPTIONS http://127.0.0.1:5000/menu-items/ITEM-2642a3c2
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> OPTIONS /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 204 NO CONTENT
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Allow: DELETE, GET, HEAD, OPTIONS, PUT
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< Connection: close
+< 
+* Closing connection
+
+
+############################################################
+# 12. CORS preflight from another origin
+############################################################
+$ curl -v -X OPTIONS http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Origin: https://menu.example.com -H Access-Control-Request-Method: PUT -H Access-Control-Request-Headers: authorization,if-match,content-type
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> OPTIONS /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Origin: https://menu.example.com
+> Access-Control-Request-Method: PUT
+> Access-Control-Request-Headers: authorization,if-match,content-type
+> 
+< HTTP/1.1 204 NO CONTENT
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Allow: DELETE, GET, HEAD, OPTIONS, PUT
+< Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+< Access-Control-Allow-Headers: Content-Type, Authorization, Idempotency-Key, If-Match, If-None-Match, X-HTTP-Method-Override
+< Access-Control-Max-Age: 600
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< Connection: close
+< 
+* Closing connection
+
+
+############################################################
+# 13. Failure: 406 Not Acceptable
+############################################################
+$ curl -v http://127.0.0.1:5000/menu-items -H Accept: text/html
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: text/html
+> 
+< HTTP/1.1 406 NOT ACCEPTABLE
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 156
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 92
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [156 bytes data]
+* Closing connection
+{"detail": "This service only produces application/json.", "status": 406, "title": "Not Acceptable", "type": "https://campuseats.dev/errors/not-acceptable"}
+
+############################################################
+# 14. Failure: 415 Unsupported Media Type
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/menu-items -H Authorization: Bearer demo-token -H Content-Type: text/plain -d name=Tea
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: text/plain
+> Content-Length: 8
+> 
+} [8 bytes data]
+< HTTP/1.1 415 UNSUPPORTED MEDIA TYPE
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 180
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 94
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [180 bytes data]
+* Closing connection
+{"detail": "Send the body with `Content-Type: application/json`.", "status": 415, "title": "Unsupported Media Type", "type": "https://campuseats.dev/errors/unsupported-media-type"}
+
+############################################################
+# 15. Query-string reads + gzip
+# sort/filter/paginate on a GET; --compressed sends Accept-Encoding and decodes
+############################################################
+$ curl -v --compressed http://127.0.0.1:5000/menu-items?category=snacks&sort=price&order=desc&limit=2&offset=0
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items?category=snacks&sort=price&order=desc&limit=2&offset=0 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Accept-Encoding: deflate, gzip, br, zstd
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 242
+< Cache-Control: public, max-age=10
+< X-Total-Count: 6
+< Link: <http://127.0.0.1:5000/menu-items?category=snacks&sort=price&order=desc&limit=2&offset=2>; rel="next"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 91
+< X-RateLimit-Reset: 60
+< Vary: Accept-Encoding
+< Content-Encoding: gzip
+< Connection: close
+< 
+{ [242 bytes data]
+* Closing connection
+[{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 6.","isAvailable":true,"itemId":"ITEM-63f3969c","name":"Snack platter 6","price":26.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 5.","isAvailable":true,"itemId":"ITEM-197ae49e","name":"Snack platter 5","price":25.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}]
+
+$ curl -v --compressed http://127.0.0.1:5000/menu-items?limit=100
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /menu-items?limit=100 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Accept-Encoding: deflate, gzip, br, zstd
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 353
+< Cache-Control: public, max-age=10
+< X-Total-Count: 7
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 90
+< X-RateLimit-Reset: 60
+< Vary: Accept-Encoding
+< Content-Encoding: gzip
+< Connection: close
+< 
+{ [353 bytes data]
+* Closing connection
+[{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Now with extra chutney.","isAvailable":true,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":90.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 1.","isAvailable":true,"itemId":"ITEM-57dbf90a","name":"Snack platter 1","price":21.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 2.","isAvailable":true,"itemId":"ITEM-a8746658","name":"Snack platter 2","price":22.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 3.","isAvailable":true,"itemId":"ITEM-a97bda88","name":"Snack platter 3","price":23.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 4.","isAvailable":true,"itemId":"ITEM-ff3f0808","name":"Snack platter 4","price":24.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 5.","isAvailable":true,"itemId":"ITEM-197ae49e","name":"Snack platter 5","price":25.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"},{"category":"snacks","createdAt":"2026-09-20T08:55:39+00:00","description":"A generous platter of assorted campus snacks, number 6.","isAvailable":true,"itemId":"ITEM-63f3969c","name":"Snack platter 6","price":26.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}]
+
+
+############################################################
+# 16. DELETE while still available -> 409; PATCH availability; DELETE -> 204
+############################################################
+$ curl -v -X DELETE http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Authorization: Bearer demo-token
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> DELETE /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> 
+< HTTP/1.1 409 CONFLICT
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 193
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 87
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [193 bytes data]
+* Closing connection
+{"detail": "Item is still available - mark it unavailable before deleting it.", "status": 409, "title": "Request conflicts with current state", "type": "https://campuseats.dev/errors/conflict"}
+$ curl -v -X PATCH http://127.0.0.1:5000/menu-items/ITEM-2642a3c2/availability -H Authorization: Bearer demo-token -H Content-Type: application/json -d {"isAvailable":false}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> PATCH /menu-items/ITEM-2642a3c2/availability HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Content-Length: 21
+> 
+} [21 bytes data]
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 246
+< ETag: "179d54862f04b381"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 86
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [246 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Now with extra chutney.","isAvailable":false,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":90.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+$ curl -v -X PATCH http://127.0.0.1:5000/menu-items/ITEM-2642a3c2/availability -H Authorization: Bearer demo-token -H Content-Type: application/json -d {"isAvailable":false}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> PATCH /menu-items/ITEM-2642a3c2/availability HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Content-Length: 21
+> 
+} [21 bytes data]
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/json
+< Content-Length: 246
+< ETag: "179d54862f04b381"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 85
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [246 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:39+00:00","description":"Now with extra chutney.","isAvailable":false,"itemId":"ITEM-2642a3c2","name":"Masala Dosa","price":90.0,"restaurantId":"rest-001","updatedAt":"2026-09-20T08:55:39+00:00"}
+
+$ curl -v -X DELETE http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Authorization: Bearer demo-token
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> DELETE /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> 
+< HTTP/1.1 204 NO CONTENT
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 84
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+* Closing connection
+
+$ curl -v -X DELETE http://127.0.0.1:5000/menu-items/ITEM-2642a3c2 -H Authorization: Bearer demo-token
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> DELETE /menu-items/ITEM-2642a3c2 HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> 
+< HTTP/1.1 404 NOT FOUND
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: application/problem+json
+< Content-Length: 148
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 83
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [148 bytes data]
+* Closing connection
+{"detail": "No menu item with id 'ITEM-2642a3c2'.", "status": 404, "title": "Resource not found", "type": "https://campuseats.dev/errors/not-found"}
+
+############################################################
+# 17. X-HTTP-Method-Override (documented fallback): POST tunnelling a DELETE
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/menu-items/ITEM-06c9b33c -H Authorization: Bearer demo-token -H X-HTTP-Method-Override: DELETE
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /menu-items/ITEM-06c9b33c HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> X-HTTP-Method-Override: DELETE
+> 
+< HTTP/1.1 204 NO CONTENT
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 81
+< X-RateLimit-Reset: 60
+< X-Method-Overridden: DELETE
+< Cache-Control: no-store
+< Connection: close
+< 
+* Closing connection
+
+
+############################################################
+# 18. Location on a 3xx: nested URL redirects to the canonical URL (301)
+############################################################
+$ curl -v http://127.0.0.1:5000/restaurants/rest-001/menu-items/ITEM-57dbf90a
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> GET /restaurants/rest-001/menu-items/ITEM-57dbf90a HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 301 MOVED PERMANENTLY
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:39 GMT
+< Location: http://127.0.0.1:5000/menu-items/ITEM-57dbf90a
+< Cache-Control: public, max-age=86400
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 88
+< X-RateLimit-Reset: 60
+< Content-Length: 0
+< Connection: close
+< 
+* Closing connection
+
+
+############################################################
+# 19. Non-CRUD action -> POST to a sub-resource
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/close -H Authorization: Bearer demo-token
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/close HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 83
+< ETag: "9995a8a5db93a95d"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 80
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [83 bytes data]
+* Closing connection
+{"isOpen":false,"itemsDisabled":6,"name":"Main Canteen","restaurantId":"rest-001"}
+
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-001/reopen -H Authorization: Bearer demo-token
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-001/reopen HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 82
+< ETag: "62ebfaa1b48c43f0"
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 79
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [82 bytes data]
+* Closing connection
+{"isOpen":true,"itemsDisabled":0,"name":"Main Canteen","restaurantId":"rest-001"}
+
+
+############################################################
+# 20. 422 Unprocessable: Payments goes down, item is created unverified, then cannot be switched on
+# kills the Payments stand-in; create retries with backoff then degrades to isAvailable:false
+############################################################
+$ curl -v -X POST http://127.0.0.1:5000/restaurants/rest-002/menu-items -H Authorization: Bearer demo-token -H Content-Type: application/json -d {"name":"Paneer Wrap","price":110,"category":"mains"}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> POST /restaurants/rest-002/menu-items HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Content-Length: 53
+> 
+} [53 bytes data]
+< HTTP/1.1 201 CREATED
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 224
+< ETag: "393eb783a03dd480"
+< Location: http://127.0.0.1:5000/menu-items/ITEM-8e2cea76
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 78
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [224 bytes data]
+* Closing connection
+{"category":"mains","createdAt":"2026-09-20T08:55:40+00:00","description":"","isAvailable":false,"itemId":"ITEM-8e2cea76","name":"Paneer Wrap","price":110.0,"restaurantId":"rest-002","updatedAt":"2026-09-20T08:55:40+00:00"}
+
+$ curl -v -X PATCH http://127.0.0.1:5000/menu-items/ITEM-8e2cea76/availability -H Authorization: Bearer demo-token -H Content-Type: application/json -d {"isAvailable":true}
+*   Trying 127.0.0.1:5000...
+* Connected to 127.0.0.1 (127.0.0.1) port 5000
+> PATCH /menu-items/ITEM-8e2cea76/availability HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer demo-token
+> Content-Type: application/json
+> Content-Length: 20
+> 
+} [20 bytes data]
+< HTTP/1.1 422 UNPROCESSABLE ENTITY
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/problem+json
+< Content-Length: 227
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 77
+< X-RateLimit-Reset: 59
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [227 bytes data]
+* Closing connection
+{"detail": "Cannot mark available: the restaurant failed the Payments health check when this item was created.", "status": 422, "title": "Request refused by domain rules", "type": "https://campuseats.dev/errors/domain-refusal"}
+
+############################################################
+# 21. Rate limiting is per client (server started with RATE_LIMIT=3)
+# alice gets 3 requests then 429 + Retry-After; bob is unaffected
+############################################################
+$ curl -v http://127.0.0.1:5002/menu-items -H Authorization: Bearer alice
+*   Trying 127.0.0.1:5002...
+* Connected to 127.0.0.1 (127.0.0.1) port 5002
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5002
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer alice
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 3
+< Cache-Control: public, max-age=10
+< X-Total-Count: 0
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 3
+< X-RateLimit-Remaining: 2
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [3 bytes data]
+* Closing connection
+[]
+
+$ curl -v http://127.0.0.1:5002/menu-items -H Authorization: Bearer alice
+*   Trying 127.0.0.1:5002...
+* Connected to 127.0.0.1 (127.0.0.1) port 5002
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5002
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer alice
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 3
+< Cache-Control: public, max-age=10
+< X-Total-Count: 0
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 3
+< X-RateLimit-Remaining: 1
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [3 bytes data]
+* Closing connection
+[]
+
+$ curl -v http://127.0.0.1:5002/menu-items -H Authorization: Bearer alice
+*   Trying 127.0.0.1:5002...
+* Connected to 127.0.0.1 (127.0.0.1) port 5002
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5002
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer alice
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 3
+< Cache-Control: public, max-age=10
+< X-Total-Count: 0
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 3
+< X-RateLimit-Remaining: 0
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [3 bytes data]
+* Closing connection
+[]
+
+$ curl -v http://127.0.0.1:5002/menu-items -H Authorization: Bearer alice
+*   Trying 127.0.0.1:5002...
+* Connected to 127.0.0.1 (127.0.0.1) port 5002
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5002
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer alice
+> 
+< HTTP/1.1 429 TOO MANY REQUESTS
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/problem+json
+< Content-Length: 149
+< Retry-After: 60
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 3
+< X-RateLimit-Remaining: 0
+< X-RateLimit-Reset: 60
+< Cache-Control: no-store
+< Connection: close
+< 
+{ [149 bytes data]
+* Closing connection
+{"detail": "Per-client request budget exhausted.", "status": 429, "title": "Too Many Requests", "type": "https://campuseats.dev/errors/rate-limited"}
+$ curl -v http://127.0.0.1:5002/menu-items -H Authorization: Bearer bob
+*   Trying 127.0.0.1:5002...
+* Connected to 127.0.0.1 (127.0.0.1) port 5002
+> GET /menu-items HTTP/1.1
+> Host: 127.0.0.1:5002
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Authorization: Bearer bob
+> 
+< HTTP/1.1 200 OK
+< Server: Werkzeug/3.1.7 Python/3.12.3
+< Date: Sun, 20 Sep 2026 08:55:40 GMT
+< Content-Type: application/json
+< Content-Length: 3
+< Cache-Control: public, max-age=10
+< X-Total-Count: 0
+< Access-Control-Allow-Origin: *
+< Access-Control-Expose-Headers: ETag, Location, Retry-After, X-Total-Count, Link, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-RateLimit-Limit: 3
+< X-RateLimit-Remaining: 2
+< X-RateLimit-Reset: 60
+< Connection: close
+< 
+{ [3 bytes data]
+* Closing connection
+[]
+
