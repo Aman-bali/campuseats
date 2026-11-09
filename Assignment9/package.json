@@ -1,0 +1,29 @@
+{
+  "name": "campuseats-assignment9-securing-api",
+  "version": "1.0.0",
+  "description": "CampusEats — CS543 Assignment 9: Securing the API (JWT Authentication & Role-Based Authorization)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/test.js",
+    "evidence": "node scripts/generate-evidence.js"
+  },
+  "keywords": [
+    "campuseats",
+    "express",
+    "jwt",
+    "bcryptjs",
+    "authentication",
+    "authorization",
+    "cs543",
+    "web-services"
+  ],
+  "author": "Aman Bali (20251651015) & Bhupesh Kumar (20251651032) - Team 12",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
